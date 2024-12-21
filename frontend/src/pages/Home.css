@@ -63,3 +63,11 @@ h1{
   text-align: center;
   background-color: #f7f7f7;
 }
+
+.leave-button {
+  background-color: rgb(175, 11, 11);
+  width: 100px;
+  font-size: smaller;
+  align-items: center;
+  align-self: center;
+}

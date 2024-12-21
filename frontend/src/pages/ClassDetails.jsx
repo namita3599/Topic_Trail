@@ -1,62 +1,57 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import Header from "../assets/Header";
-import { handleError } from "../utils";
-import { ToastContainer } from "react-toastify";
+import React, { useState } from "react";
+import { useParams } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
+import "./ClassDetails.css"
+
+const Header = () => {
+  return (
+    <header className="class-header">
+      <div className="logo">
+        <img src="path-to-your-logo.png" alt="Logo" />
+      </div>
+      <div className="search-container">
+        <input type="text" placeholder="Search..." />
+      </div>
+    </header>
+  );
+};
 
 const ClassDetails = () => {
-  const { id } = useParams(); // Get the class ID from URL parameters
-  const [classData, setClassData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const token = localStorage.getItem("token");
+  const { id } = useParams(); // Get the class ID from the URL parameters
+  const classCode = localStorage.getItem("classCode"); // Retrieve class code from localStorage
+  const [copySuccess, setCopySuccess] = useState(false);
 
-  useEffect(() => {
-    const fetchClassDetails = async () => {
-      if (!token) {
-        handleError("No token found. Please log in.");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch(`http://localhost:8080/classes/${id}`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+  const handleCopyClassCode = () => {
+    if (classCode) {
+      navigator.clipboard.writeText(classCode)
+        .then(() => {
+          setCopySuccess(true);
+          toast.success("Class code copied to clipboard!");
+        })
+        .catch((err) => {
+          setCopySuccess(false);
+          toast.error("Failed to copy class code.");
         });
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch class details");
-        }
-
-        const data = await response.json();
-        setClassData(data);
-      } catch (err) {
-        handleError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchClassDetails();
-  }, [id, token]);
+    } else {
+      toast.error("No class code available to copy.");
+    }
+  };
 
   return (
     <div>
       <Header />
       <div className="class-details-container">
-        {loading ? (
-          <p>Loading class details...</p>
-        ) : classData ? (
-          <div className="class-details">
-            <h2>{classData.title}</h2>
-            <p>{classData.description}</p>
-            {/* Add more class details as needed */}
+        <h2>Class Details</h2>
+        {/* Display the class code */}
+        {classCode ? (
+          <div>
+            <p><strong>Class Code:</strong> {classCode}</p>
+            <button onClick={handleCopyClassCode}>
+              {copySuccess ? "Copied!" : "Copy Class Code"}
+            </button>
           </div>
         ) : (
-          <p>Class not found</p>
+          <p>No class code found.</p>
         )}
         <ToastContainer />
       </div>
