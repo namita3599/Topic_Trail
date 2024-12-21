@@ -136,10 +136,40 @@ const getUserClasses = async (req, res) => {
     res.status(500).json({ message: "Error retrieving user classes" });
   }
 };
+// Delete a class (only by the creator)
+const deleteClass = async (req, res) => {
+  const { classId } = req.params;
+
+  try {
+    // Find the class by its ID
+    const classObj = await Class.findById(classId);
+    console.log(classId);
+    // Check if the class exists
+    if (!classObj) {
+      return res.status(404).json({ message: "Class not found" });
+    }
+
+    // Check if the logged-in user is the creator of the class
+    if (classObj.creator.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to delete this class" });
+    }
+
+    // Delete the class
+    await Class.findByIdAndDelete(classId);
+
+    res.status(200).json({ message: "Class deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error deleting class" });
+  }
+};
 
 module.exports = {
   createClass,
   joinClass,
   leaveClass,
   getUserClasses,
+  deleteClass, // Add this export
 };

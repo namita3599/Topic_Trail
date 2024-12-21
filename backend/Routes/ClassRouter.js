@@ -5,6 +5,7 @@ const {
   joinClass,
   getUserClasses,
   leaveClass,
+  deleteClass
 } = require("../Controllers/ClassController");
 
 // console.log({ ensureAuthenticated });
@@ -23,5 +24,8 @@ router.get("/", ensureAuthenticated, getUserClasses);
 
 // Leave a class
 router.delete("/:classId/leave", ensureAuthenticated, leaveClass);
+
+// Delete a class (only by the creator)
+router.delete("/:classId", ensureAuthenticated, deleteClass);
 
 module.exports = router;
