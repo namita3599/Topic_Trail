@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import Header from "../assets/Header";
 import "./Home.css";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 import { handleError } from "../utils";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 
 function Home() {
   const [classes, setClasses] = useState([]);
@@ -20,7 +20,7 @@ function Home() {
       }
 
       try {
-        // Fetch classes
+        // Fetch classes from the backend
         const response = await fetch("http://localhost:8080/classes", {
           method: "GET",
           headers: {
@@ -80,10 +80,44 @@ function Home() {
     navigate(`/class/${classId}`);
   };
 
+  const handleLeaveClass = async (classId, event) => {
+    event.stopPropagation(); // Prevents triggering parent `onClick` events
+
+    if (!token) {
+      toast.error("Please log in to leave a class.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8080/classes/${classId}/leave`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to leave the class.");
+      }
+
+      setClasses((prevClasses) => {
+        const updatedClasses = prevClasses.filter((classItem) => classItem._id !== classId);
+        return updatedClasses;
+      });
+
+      toast.success(result.message || "You have left the class.");
+    } catch (err) {
+      toast.error(err.message || "An error occurred.");
+    }
+  };
+
   return (
     <div>
       <Header />
-      <div class="spacer"></div>
+      <div className="spacer"></div>
       <div className="home-container">
         <h1>Your Classes</h1>
         {loading ? (
@@ -101,6 +135,12 @@ function Home() {
               >
                 <h2>{classItem.title}</h2>
                 <p>Created by: {classItem.creatorName}</p>
+                <button
+                  className="leave-button"
+                  onClick={(event) => handleLeaveClass(classItem._id, event)}
+                >
+                  Leave Class
+                </button>
               </div>
             ))}
           </div>
