@@ -64,10 +64,89 @@ h1{
   background-color: #f7f7f7;
 }
 
-.leave-button {
+.class-card-buttons {
+  display: flex;
+  gap: 10px; /* Adjust space between the buttons */
+}
+
+.leave-button, .delete-button {
+  padding: 8px 16px;
+  cursor: pointer;
+  border: none;
+}
+
+.leave-button, .delete-button {
   background-color: rgb(175, 11, 11);
-  width: 100px;
   font-size: smaller;
-  align-items: center;
-  align-self: center;
+}
+
+
+/* Media Queries */
+
+/* For tablets (max-width: 1024px) */
+@media (max-width: 1024px) {
+  .classes-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* Adjust column sizes for tablets */
+  }
+
+  .home-container {
+    padding-top: 40px; /* Adjust the padding-top for better spacing */
+    margin-top: 80px;
+  }
+
+  .home-container .class-card {
+    min-height: 180px; /* Ensure cards are tall enough */
+  }
+
+  h1 {
+    font-size: 28px;
+  }
+}
+
+/* For mobile phones (max-width: 768px) */
+@media (max-width: 768px) {
+  /* Adjust grid layout for smaller screens */
+  .classes-grid {
+    grid-template-columns: 1fr; /* Stack items vertically */
+    padding: 8px;
+    gap: 16px; /* Reduce gap for smaller screens */
+  }
+
+  /* Home container styling */
+  .home-container {
+    padding: 10px;
+    margin-top: 60px;
+  }
+
+  /* Class card styling */
+  .home-container .class-card {
+    padding: 15px;
+  }
+
+  /* Adjust button size for mobile */
+  .leave-button, .delete-button {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+
+  h1 {
+    font-size: 24px; /* Adjust heading size for mobile */
+  }
+}
+
+/* For very small mobile screens (max-width: 480px) */
+@media (max-width: 480px) {
+  .classes-grid {
+    grid-template-columns: 1fr; /* Ensure a single column for very small screens */
+    gap: 10px; /* Smaller gap between items */
+  }
+
+  h1 {
+    font-size: 20px; /* Smaller font size for very small screens */
+  }
+
+  .home-container {
+    padding: 8px;
+    margin-top: 40px;
+  }
 }
