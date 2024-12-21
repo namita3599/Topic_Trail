@@ -114,6 +114,46 @@ function Home() {
     }
   };
 
+  const handleDeleteClass = async (classId, event) => {
+    event.stopPropagation();
+
+    if (!token) {
+      toast.error("Please log in to delete a class.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8080/classes/${classId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error("You are not authorized to delete this class.");
+        }
+        if (response.status === 404) {
+          throw new Error("Class not found.");
+        }
+        throw new Error(result.message || "Failed to delete the class.");
+      }
+
+      setClasses((prevClasses) => {
+        const updatedClasses = prevClasses.filter((classItem) => classItem._id !== classId);
+        return updatedClasses;
+      });
+
+      toast.success(result.message || "Class deleted successfully.");
+    } catch (err) {
+      toast.error(err.message || "An error occurred.");
+    }
+  };
+
   return (
     <div>
       <Header />
@@ -135,12 +175,20 @@ function Home() {
               >
                 <h2>{classItem.title}</h2>
                 <p>Created by: {classItem.creatorName}</p>
+                <div className="class-card-buttons">
                 <button
                   className="leave-button"
                   onClick={(event) => handleLeaveClass(classItem._id, event)}
                 >
                   Leave Class
                 </button>
+                <button
+                  className="delete-button"
+                  onClick={(event) => handleDeleteClass(classItem._id, event)}
+                >
+                  Delete Class
+                </button>
+                </div>
               </div>
             ))}
           </div>

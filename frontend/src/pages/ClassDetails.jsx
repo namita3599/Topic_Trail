@@ -1,20 +1,9 @@
+// ClassDetails.js
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
-import "./ClassDetails.css"
-
-const Header = () => {
-  return (
-    <header className="class-header">
-      <div className="logo">
-        <img src="path-to-your-logo.png" alt="Logo" />
-      </div>
-      <div className="search-container">
-        <input type="text" placeholder="Search..." />
-      </div>
-    </header>
-  );
-};
+import ClassHeader from '../assets/ClassHeader'; // Import ClassHeader
+import './ClassDetails.css';
 
 const ClassDetails = () => {
   const { id } = useParams(); // Get the class ID from the URL parameters
@@ -39,20 +28,14 @@ const ClassDetails = () => {
 
   return (
     <div>
-      <Header />
+      <ClassHeader 
+        classCode={classCode} 
+        handleCopyClassCode={handleCopyClassCode} 
+        copySuccess={copySuccess}
+      />
       <div className="class-details-container">
         <h2>Class Details</h2>
-        {/* Display the class code */}
-        {classCode ? (
-          <div>
-            <p><strong>Class Code:</strong> {classCode}</p>
-            <button onClick={handleCopyClassCode}>
-              {copySuccess ? "Copied!" : "Copy Class Code"}
-            </button>
-          </div>
-        ) : (
-          <p>No class code found.</p>
-        )}
+        {/* Display additional class details here */}
         <ToastContainer />
       </div>
     </div>
