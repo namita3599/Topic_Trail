@@ -1,6 +1,17 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
+const SummaryItemSchema = new Schema({
+  title: {
+    type: String,
+    required: true,
+  },
+  content: {
+    type: String,
+    required: true,
+  },
+});
+
 const VideoSchema = new Schema({
   title: {
     type: String,
@@ -28,12 +39,7 @@ const VideoSchema = new Schema({
     type: String,
     default: null,
   },
-  summary: [
-    {
-      title: String,
-      content: String,
-    },
-  ],
+  summary: [SummaryItemSchema],
   duration: {
     type: Number,
     default: 0,

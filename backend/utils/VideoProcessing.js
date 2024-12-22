@@ -1,7 +1,7 @@
 const VideoModel = require("../Models/Video");
 const AudioConverter = require("../Services/AudioConverter");
 const WhisperService = require("../Services/WhisperService");
-const LlamaService = require("../Services/LlamaService");
+const HuggingFaceService = require("../Services/HuggingFaceService");
 
 async function updateVideoStatus(videoId, status, error = null) {
   const updates = { processingStatus: status };
@@ -23,10 +23,11 @@ async function processVideo(videoId) {
     const transcription = await WhisperService.transcribe(audioBuffer);
     await VideoModel.findByIdAndUpdate(videoId, { transcription });
 
-    // Generate summary
-    const summary = await LlamaService.generateSummary(transcription);
+    // Generate structured summary using HuggingFace instead of Qwen
+    const structuredSummary =
+      await HuggingFaceService.generateStructuredSummary(transcription);
     await VideoModel.findByIdAndUpdate(videoId, {
-      summary,
+      summary: structuredSummary,
       processingStatus: "completed",
     });
   } catch (error) {
