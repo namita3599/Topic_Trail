@@ -5,7 +5,7 @@ const axios = require("axios");
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; // Disable SSL verification
 
 const HUGGINGFACE_API_KEY = HUGGINGFACE_API_KEY;
-
+//secret
 // Create a client for Hugging Face Inference
 const client = new HfInference(HUGGINGFACE_API_KEY);
 
