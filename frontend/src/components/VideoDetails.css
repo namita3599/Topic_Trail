@@ -1,0 +1,144 @@
+/* Container styles */
+.video-details {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.video-left {
+  width: 70%;
+  float: left;
+}
+
+.video-right {
+  width: 28%;
+  float: right;
+  margin-left: 2%;
+}
+
+.video-container {
+  position: relative;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Video player controls */
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* Control buttons */
+.video-container button {
+  background: transparent;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+}
+
+.video-container button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.video-container button:active {
+  transform: scale(0.95);
+}
+
+/* Control bar */
+.video-container .controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  padding: 16px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.video-container:hover .controls {
+  opacity: 1;
+}
+
+/* Video description and summary sections */
+.video-description, .video-summary {
+  background: #fff;
+  padding: 20px;
+  margin-top: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.video-description h3, .video-summary h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.video-summary h4 {
+  color: #555;
+  margin-bottom: 8px;
+}
+
+/* Responsive design */
+@media (max-width: 968px) {
+  .video-left, .video-right {
+    width: 100%;
+    float: none;
+    margin: 0;
+  }
+  
+  .video-right {
+    margin-top: 20px;
+  }
+}
+
+/* Loading and error states */
+.loading, .error {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+/* Video title */
+.video-details h1 {
+  margin: 20px 0;
+  color: #333;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* Toast notifications */
+.Toastify__toast {
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* Thumbnails */
+img[alt="Thumbnail"] {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}

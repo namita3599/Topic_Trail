@@ -12,6 +12,26 @@ const SummaryItemSchema = new Schema({
   },
 });
 
+const MCQSchema = new Schema({
+  question: {
+    type: String,
+    required: true,
+  },
+  options: [{
+    type: String,
+    required: true,
+  }],
+  correctAnswerIndex: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  explanation: {
+    type: String,
+    required: true,
+  }
+});
+
 const VideoSchema = new Schema({
   title: {
     type: String,
@@ -26,7 +46,6 @@ const VideoSchema = new Schema({
     required: true,
   },
   thumbnailUrl: {
-    // Added this field
     type: String,
     default: null,
   },
@@ -45,11 +64,20 @@ const VideoSchema = new Schema({
     default: null,
   },
   summary: [SummaryItemSchema],
+  mcqs: {
+    type: [MCQSchema],
+    default: [],
+  },
   duration: {
     type: Number,
     default: 0,
   },
   processingStatus: {
+    type: String,
+    enum: ["pending", "processing", "completed", "failed"],
+    default: "pending",
+  },
+  mcqGenerationStatus: {
     type: String,
     enum: ["pending", "processing", "completed", "failed"],
     default: "pending",
@@ -64,7 +92,9 @@ const VideoSchema = new Schema({
   },
 });
 
+// Indexes for optimizing queries
 VideoSchema.index({ classId: 1, createdAt: -1 });
+VideoSchema.index({ title: "text" }); // Add text index for title search
 
 const VideoModel = mongoose.model("videos", VideoSchema);
 module.exports = VideoModel;
