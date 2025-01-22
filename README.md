@@ -104,6 +104,14 @@ TopicTrail is a smart lecture management platform powered by AI. It simplifies c
 
 3. Add the necessary environment variables:
 
+   frontend:
+  
+   ```env
+   VITE_BASE_URL="backend URL"
+   ```
+
+   backend:
+
    ```env
    MONGO_CONN="mongodb+srv://<username>:<password>@cluster0.mongodb.net/auth-db?retryWrites=true&w=majority&appName=Cluster0"
    JWT_SECRET="your-jwt-secret"
@@ -119,7 +127,7 @@ TopicTrail is a smart lecture management platform powered by AI. It simplifies c
    # NODE_EXTRA_CA_CERTS=cloudinary.crt
    ```
 
-4. Access the application in your browser at `http://localhost:3000`.
+5. Access the application in your browser at `http://localhost:3000`.
 
 ---
 
