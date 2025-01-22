@@ -258,6 +258,13 @@ function Home() {
     </div>
   );
 
+  const initialize = () => {
+    const savedTheme = localStorage.getItem("theme") || "light";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+  }
+
+  initialize();
+
   const filteredClasses = filter === "yours" ? yourClasses : allClasses;
 
   return (

@@ -13,6 +13,7 @@ import {
 import Header from "../components/HeaderVideo";
 import CustomVideoPlayer from "../components/CustomVideoPlayer";
 import EditableSummary from "../components/EditableSummary";
+import "./CustomVideoDetails.css";
 
 const QuizForm = ({ onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -100,11 +101,8 @@ const VideoDetails = () => {
   const [showQuizForm, setShowQuizForm] = useState(false);
   const [generatingQuiz, setGeneratingQuiz] = useState(false);
   const token = localStorage.getItem("token");
-  const [showAssignment, setShowAssignment] = useState(false);
-  const [assignment, setAssignment] = useState(null);
   const [submissions, setSubmissions] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
-  const [newAssignment, setNewAssignment] = useState("");
   const baseUrl = import.meta.env.VITE_BASE_URL;
 
   useEffect(() => {
@@ -113,107 +111,7 @@ const VideoDetails = () => {
     setIsCreator(creatorStatus);
     fetchVideoDetails();
     fetchNotes();
-    fetchAssignment();
   }, [videoId, location]);
-
-  const fetchAssignment = async () => {
-    try {
-      const response = await fetch(`${baseUrl}videos/${videoId}/assignment`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (response.ok) {
-        const result = await response.json();
-        setAssignment(result);
-        // Fetch submissions only if assignment exists
-        if (result) {
-          fetchSubmissions();
-        }
-      }
-    } catch (err) {
-      console.error("Failed to fetch assignment:", err);
-    }
-  };
-
-  const fetchSubmissions = async () => {
-    try {
-      const response = await fetch(
-        `${baseUrl}videos/${videoId}/assignment/submissions`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (response.ok) {
-        const result = await response.json();
-        setSubmissions(result);
-      }
-    } catch (err) {
-      console.error("Failed to fetch submissions:", err);
-    }
-  };
-
-  const handleAddAssignment = async () => {
-    try {
-      const response = await fetch(`${baseUrl}videos/${videoId}/assignment`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ question: newAssignment }),
-      });
-
-      if (response.ok) {
-        toast.success("Assignment added successfully");
-        fetchAssignment();
-        setNewAssignment("");
-      } else {
-        throw new Error("Failed to add assignment");
-      }
-    } catch (err) {
-      toast.error(err.message);
-    }
-  };
-
-  const handleFileChange = (e) => {
-    setSelectedFile(e.target.files[0]);
-  };
-
-  const handleSubmitAssignment = async () => {
-    if (!selectedFile) {
-      toast.error("Please select a file to upload");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("image", selectedFile);
-
-    try {
-      const response = await fetch(
-        `${baseUrl}videos/${videoId}/assignment/submit`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Assignment submitted successfully");
-        fetchSubmissions();
-        setSelectedFile(null);
-      } else {
-        throw new Error("Failed to submit assignment");
-      }
-    } catch (err) {
-      toast.error(err.message);
-    }
-  };
 
   const fetchVideoDetails = async () => {
     if (!token) {
@@ -418,17 +316,14 @@ const VideoDetails = () => {
         {/* Right column with interactive sections */}
         <div className="flex-1 min-w-[40%] bg-gray-50 dark:bg-zinc-900 p-6 rounded-lg shadow-lg">
           {/* Section toggle buttons */}
-          <div className="grid grid-cols-4 gap-2 mb-6">
-            {["Summary", "Quiz", "Notes", "Assignment"].map((item) => (
+          <div className="grid grid-cols-3 gap-2 mb-6">
+            {["Summary", "Quiz", "Notes"].map((item) => (
               <button
                 key={item}
                 onClick={() => {
                   setShowSummary(item === "Summary" ? !showSummary : false);
                   setShowQuiz(item === "Quiz" ? !showQuiz : false);
                   setShowNotes(item === "Notes" ? !showNotes : false);
-                  setShowAssignment(
-                    item === "Assignment" ? !showAssignment : false
-                  );
                 }}
                 className="w-full flex items-center justify-center gap-1 bg-indigo-600 hover:bg-indigo-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white py-2 px-2 rounded-lg transition-colors text-sm sm:text-base"
               >
@@ -437,18 +332,12 @@ const VideoDetails = () => {
                   <FaQuestionCircle className="flex-shrink-0" />
                 )}
                 {item === "Notes" && <FaStickyNote className="flex-shrink-0" />}
-                {item === "Assignment" && (
-                  <FaClipboardList className="flex-shrink-0" />
-                )}
                 <span className="hidden md:inline">{item}</span>
                 {(item === "Summary" && showSummary) ||
                 (item === "Quiz" && showQuiz) ||
                 (item === "Notes" && showNotes) ||
-                (item === "Assignment" && showAssignment) ? (
-                  <FaChevronUp className="flex-shrink-0" />
-                ) : (
-                  <FaChevronDown className="flex-shrink-0" />
-                )}
+                <FaChevronDown className="flex-shrink-0" />
+                }
               </button>
             ))}
           </div>
@@ -641,124 +530,7 @@ const VideoDetails = () => {
                 </div>
               </div>
             )}
-            {showAssignment && (
-              <div className="bg-white dark:bg-zinc-900 p-4 rounded-lg shadow-lg mb-6 h-96 overflow-y-auto">
-                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-                  Assignment
-                </h3>
-
-                {isCreator ? (
-                  <div className="space-y-4">
-                    {!assignment ? (
-                      <div>
-                        <textarea
-                          value={newAssignment}
-                          onChange={(e) => setNewAssignment(e.target.value)}
-                          placeholder="Enter assignment question..."
-                          className="w-full p-2 border rounded h-24 dark:bg-zinc-800 dark:text-white dark:border-zinc-700"
-                        />
-                        <button
-                          onClick={handleAddAssignment}
-                          className="mt-2 w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white py-2 px-4 rounded-lg transition-colors"
-                        >
-                          Add Assignment
-                        </button>
-                      </div>
-                    ) : (
-                      <div>
-                        <div className="bg-gray-50 dark:bg-zinc-800 p-4 rounded-lg mb-4">
-                          <h4 className="font-medium mb-2">Question:</h4>
-                          <p>{assignment.question}</p>
-                        </div>
-                        <h4 className="font-medium mb-2">Submissions:</h4>
-                        <div className="space-y-4">
-                          {submissions.map((submission) => (
-                            <div
-                              key={submission._id}
-                              className="border dark:border-zinc-700 p-4 rounded-lg"
-                            >
-                              <p className="font-medium mb-2">
-                                {submission.userName}
-                              </p>
-                              <img
-                                src={submission.submissionImage}
-                                alt="Submission"
-                                className="w-full h-auto mb-2 rounded"
-                              />
-                              {submission.assessment && (
-                                <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                                  <h5 className="font-medium mb-1">
-                                    Assessment:
-                                  </h5>
-                                  <p className="whitespace-pre-wrap">
-                                    {submission.assessment}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {assignment ? (
-                      <div>
-                        <div className="bg-gray-50 dark:bg-zinc-800 p-4 rounded-lg mb-4">
-                          <h4 className="font-medium mb-2">Question:</h4>
-                          <p>{assignment.question}</p>
-                        </div>
-                        {submissions.length > 0 ? (
-                          <div>
-                            <h4 className="font-medium mb-2">
-                              Your Submission:
-                            </h4>
-                            <div className="border dark:border-zinc-700 p-4 rounded-lg">
-                              <img
-                                src={submissions[0].submissionImage}
-                                alt="Your submission"
-                                className="w-full h-auto mb-2 rounded"
-                              />
-                              {submissions[0].assessment && (
-                                <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                                  <h5 className="font-medium mb-1">
-                                    Assessment:
-                                  </h5>
-                                  <p className="whitespace-pre-wrap">
-                                    {submissions[0].assessment}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <div>
-                            <input
-                              type="file"
-                              onChange={handleFileChange}
-                              accept="image/*"
-                              className="w-full mb-2"
-                            />
-                            <button
-                              onClick={handleSubmitAssignment}
-                              className="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white py-2 px-4 rounded-lg transition-colors"
-                            >
-                              Submit Assignment
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-gray-600 dark:text-gray-400">
-                        No assignment available yet.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+            </div>
         </div>
       </div>
       <ToastContainer />
