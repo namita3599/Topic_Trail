@@ -230,6 +230,15 @@
   filter: grayscale(100%) sepia(100%) hue-rotate(240deg) brightness(50%) saturate(3);
 }
 
+._menuDropdown_18k7x_453 button {
+  background-color: maroon;
+  margin: 0;
+}
+
+._menuDropdown_18k7x_453 button:hover {
+  background-color: maroon;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .modal-content {

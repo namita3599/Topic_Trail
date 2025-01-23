@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaRegCopy, FaUpload, FaArrowLeft } from "react-icons/fa"; // Importing the back icon
 import { Sun, Moon } from "lucide-react";
 import { toast } from "react-toastify";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import "./ClassHeader.css";
 
 const baseUrl = import.meta.env.VITE_BASE_URL;
@@ -18,12 +18,13 @@ const ClassHeader = ({ classCode, classId, onSearch, isCreator }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "light";
     setIsDarkMode(savedTheme === "dark");
-    document.documentElement.setAttribute("data-theme", savedTheme);
-  }, []);
+      document.documentElement.setAttribute("data-theme", savedTheme);
+  }, [location]);
 
   const toggleTheme = () => {
     const newTheme = isDarkMode ? "light" : "dark";
@@ -103,6 +104,13 @@ const ClassHeader = ({ classCode, classId, onSearch, isCreator }) => {
       setIsUploading(false);
     }
   };
+
+  const initialize = () => {
+    const savedTheme = localStorage.getItem("theme") || "light";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+  }
+
+  initialize();
 
   return (
     <div className="class-header">
