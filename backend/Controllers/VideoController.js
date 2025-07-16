@@ -44,6 +44,7 @@ const VideoController = {
         description,
         cloudinaryUrl: cloudinaryResult.url,
         thumbnailUrl: cloudinaryResult.thumbnailUrl,
+        public_id: cloudinaryResult.public_id,
         classId,
         creator: req.user._id,
         duration: cloudinaryResult.duration || 0,
@@ -118,10 +119,8 @@ const VideoController = {
           .json({ error: "Only class creators can delete videos" });
       }
 
-      const publicId = CloudinaryService.getPublicIdFromUrl(
-        video.cloudinaryUrl
-      );
-      await CloudinaryService.deleteVideo(publicId);
+      await CloudinaryService.deleteVideo(video.public_id);
+
       await video.deleteOne();
 
       res.json({ message: "Video deleted successfully" });

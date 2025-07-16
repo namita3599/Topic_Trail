@@ -94,6 +94,10 @@ const VideoSchema = new Schema({
     type: String,
     default: null,
   },
+  public_id: {
+  type: String,
+  required: true,  
+  },
   classId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "classes",

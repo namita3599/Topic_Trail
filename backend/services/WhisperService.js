@@ -204,31 +204,28 @@ class WhisperService {
   static async sendTranscriptionRequest(audioBuffer) {
     console.log(
       `\n🌐 Sending API request for chunk of size ${(
-        audioBuffer.length /
-        (1024 * 1024)
+        audioBuffer.length / (1024 * 1024)
       ).toFixed(2)} MB...`
     );
 
-    const formData = new FormData();
-    formData.append("audio", audioBuffer, {
-      filename: "audio.mp3",
-      contentType: "audio/mp3",
-    });
-
     const startTime = Date.now();
+
     const response = await axios.post(
       process.env.HUGGINGFACE_WHISPER_URL,
-      formData,
+      audioBuffer, // send raw buffer
       {
         headers: {
           Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
-          ...formData.getHeaders(),
+          "Content-Type": "audio/mpeg", // or "audio/wav" if you send wav files
+          Accept: "application/json",
         },
         maxBodyLength: Infinity,
       }
     );
+
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`✅ API request completed in ${duration} seconds`);
+
     return response.data.text;
   }
 

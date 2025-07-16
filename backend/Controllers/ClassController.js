@@ -212,13 +212,16 @@ const deleteClass = async (req, res) => {
     // Delete all videos from Cloudinary and database
     for (const video of videos) {
       try {
-        // Get the public ID from the URL
-        const publicId = CloudinaryService.getPublicIdFromUrl(
-          video.cloudinaryUrl
-        );
+        // // Get the public ID from the URL
+        // const publicId = CloudinaryService.getPublicIdFromUrl(
+        //   video.cloudinaryUrl
+        // );
 
-        // Delete from Cloudinary
-        await CloudinaryService.deleteVideo(publicId);
+        // // Delete from Cloudinary
+        // await CloudinaryService.deleteVideo(publicId);
+
+        await CloudinaryService.deleteVideo(video.public_id);
+
 
         // Delete video document
         await video.deleteOne();
