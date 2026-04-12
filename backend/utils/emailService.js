@@ -1,5 +1,13 @@
 const nodemailer = require("nodemailer");
 
+const normalizeAddress = (address) => {
+  return String(address || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^.*</, "")
+    .replace(/>.*$/, "");
+};
+
 const getSanitizedEmailConfig = () => {
   const emailUser = (process.env.EMAIL_USER || "").trim();
   const emailPass = (process.env.EMAIL_PASS || "").trim().replace(/\s+/g, "");
@@ -41,13 +49,6 @@ const sendOTPEmail = async (email, otp) => {
   const config = getSanitizedEmailConfig();
   const transporter = createTransporter(config);
 
-  // Validate SMTP credentials/connection before attempting delivery.
-  try {
-    await transporter.verify();
-  } catch (error) {
-    throw new Error(`SMTP verification failed: ${error.message}`);
-  }
-
   const mailOptions = {
     from: config.emailUser,
     to: email,
@@ -62,13 +63,18 @@ const sendOTPEmail = async (email, otp) => {
   try {
     const info = await transporter.sendMail(mailOptions);
     const acceptedRecipients = Array.isArray(info.accepted) ? info.accepted : [];
-    const normalizedRecipient = String(email).toLowerCase();
-    const isAccepted = acceptedRecipients.some(
-      (recipient) => String(recipient).toLowerCase() === normalizedRecipient
-    );
+    const rejectedRecipients = Array.isArray(info.rejected) ? info.rejected : [];
+    const normalizedRecipient = normalizeAddress(email);
+    const accepted = acceptedRecipients.map(normalizeAddress);
+    const rejected = rejectedRecipients.map(normalizeAddress);
 
-    if (!isAccepted) {
-      throw new Error("SMTP server did not accept recipient address");
+    if (rejected.includes(normalizedRecipient)) {
+      throw new Error("SMTP server rejected recipient address");
+    }
+
+    // Some providers may not echo back an exact accepted list; messageId is a strong success signal.
+    if (!accepted.includes(normalizedRecipient) && !info.messageId) {
+      throw new Error("SMTP did not confirm message delivery");
     }
 
     return info;
