@@ -7,7 +7,17 @@ const { generateOTP } = require("../utils/otpUtil");
 const signup = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    const user = await UserModel.findOne({ email });
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedName = String(name || "").trim();
+
+    if (!normalizedName || !normalizedEmail || !password) {
+      return res.status(400).json({
+        message: "Name, email and password are required",
+        success: false,
+      });
+    }
+
+    const user = await UserModel.findOne({ email: normalizedEmail });
 
     if (user) {
       return res
@@ -20,20 +30,39 @@ const signup = async (req, res) => {
     const otpExpiry = new Date();
     otpExpiry.setMinutes(otpExpiry.getMinutes() + 10); // OTP valid for 10 minutes
 
-    // Create user with unverified status
+    // Send OTP email first. Persist user only after delivery is accepted.
+    try {
+      await sendOTPEmail(normalizedEmail, otp);
+    } catch (emailError) {
+      console.error("OTP email send failed:", emailError.message);
+      return res.status(502).json({
+        message:
+          "Signup could not be completed because OTP email delivery failed. Please try again.",
+        success: false,
+      });
+    }
+
+    // Create user with unverified status after OTP email succeeds
     const userModel = new UserModel({
-      name,
-      email,
+      name: normalizedName,
+      email: normalizedEmail,
       password: await bcryptjs.hash(password, 10),
       otp,
       otpExpiry,
       isVerified: false,
     });
 
-    await userModel.save();
-
-    // Send OTP email
-    await sendOTPEmail(email, otp);
+    try {
+      await userModel.save();
+    } catch (saveError) {
+      if (saveError?.code === 11000) {
+        return res.status(409).json({
+          message: "User already exists",
+          success: false,
+        });
+      }
+      throw saveError;
+    }
 
     res.status(201).json({
       message: "Signup successful. Please verify your email with the OTP sent.",
@@ -43,9 +72,8 @@ const signup = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({
-      message: "Internal server error",
+      message: err.message || "Internal server error",
       success: false,
-      reason: err,
     });
   }
 };

@@ -12,7 +12,8 @@ const VideoRouter = require("./Routes/VideoRouter");
 const multer = require("multer");
 
 require("./Models/db");
-const PORT = process.env.PORT || 8080;
+const PORT = Number(process.env.PORT) || 8080;
+const MAX_PORT_ATTEMPTS = 10;
 // console.log("NODE_EXTRA_CA_CERTS:", process.env.NODE_EXTRA_CA_CERTS);
 // Increase payload limit for video uploads
 app.use(bodyParser.json({ limit: "50mb" }));
@@ -45,6 +46,27 @@ app.use((error, req, res, next) => {
   next(error);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on ${PORT}`);
-});
+const startServer = (startPort) => {
+  const server = app.listen(startPort, () => {
+    console.log(`Server is running on ${startPort}`);
+  });
+
+  server.on("error", (error) => {
+    if (error.code === "EADDRINUSE") {
+      const nextPort = startPort + 1;
+      if (nextPort > PORT + MAX_PORT_ATTEMPTS) {
+        console.error(
+          `Unable to start server. Ports ${PORT}-${PORT + MAX_PORT_ATTEMPTS} are in use.`
+        );
+        process.exit(1);
+      }
+      console.warn(`Port ${startPort} is in use. Retrying on ${nextPort}...`);
+      startServer(nextPort);
+      return;
+    }
+
+    throw error;
+  });
+};
+
+startServer(PORT);
