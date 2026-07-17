@@ -5,6 +5,7 @@ const app = express();
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const AuthRouter = require("./Routes/AuthRouter");
+const OtpRouter = require("./Routes/OtpRouter");
 // const ProductRouter = require('./Routes/ProductRouter');
 const ClassRouter = require("./Routes/ClassRouter");
 const UserRoutes = require("./Routes/User");
@@ -33,6 +34,7 @@ app.get("/ping", (req, res) => {
 app.use(bodyParser.json());
 app.use(cors());
 app.use("/auth", AuthRouter);
+app.use("/api/auth", OtpRouter); // Brevo OTP: /api/auth/send-otp, /api/auth/verify-otp
 // app.use('/products', ProductRouter);
 app.use("/classes", ClassRouter);
 app.use("/users", UserRoutes);
