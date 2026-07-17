@@ -1,88 +1,57 @@
-const nodemailer = require("nodemailer");
+const axios = require("axios");
 
-const normalizeAddress = (address) => {
-  return String(address || "")
-    .trim()
-    .toLowerCase()
-    .replace(/^.*</, "")
-    .replace(/>.*$/, "");
-};
-
-const getSanitizedEmailConfig = () => {
-  const emailUser = (process.env.EMAIL_USER || process.env.SMTP_USER || "")
-    .trim();
-  const emailPass = (process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || "")
-    .trim()
-    .replace(/\s+/g, "");
-  const emailHost = (process.env.EMAIL_HOST || "smtp.gmail.com").trim();
-  const emailPort = Number(process.env.EMAIL_PORT || 587);
-  const emailSecure =
-    String(process.env.EMAIL_SECURE || "false").toLowerCase() === "true";
-
-  if (!emailUser || !emailPass) {
-    throw new Error("EMAIL_USER and EMAIL_PASS (or EMAIL_PASSWORD) must be set for OTP emails");
-  }
-
-  if (Number.isNaN(emailPort)) {
-    throw new Error("EMAIL_PORT must be a valid number");
-  }
-
-  return {
-    emailUser,
-    emailPass,
-    emailHost,
-    emailPort,
-    emailSecure,
-  };
-};
-
-const createTransporter = (config) => {
-  const options = {
-    auth: {
-      user: config.emailUser,
-      pass: config.emailPass,
-    },
-  };
-
-  if (config.emailHost === "smtp.gmail.com") {
-    options.service = "gmail";
-  } else {
-    options.host = config.emailHost;
-    options.port = config.emailPort;
-    options.secure = config.emailSecure;
-  }
-
-  return nodemailer.createTransport(options);
-};
-
+/**
+ * Sends an OTP verification email via Brevo's REST API over port 443.
+ * Uses axios directly to avoid SDK version incompatibilities.
+ * Works on Render/Vercel free tier (no SMTP port blocking).
+ */
 const sendOTPEmail = async (email, otp) => {
-  const config = getSanitizedEmailConfig();
-  const transporter = createTransporter(config);
+  if (!process.env.BREVO_API_KEY) {
+    throw new Error("BREVO_API_KEY must be set in environment variables");
+  }
+  if (!process.env.SENDER_EMAIL) {
+    throw new Error("SENDER_EMAIL must be set in environment variables");
+  }
 
-  const mailOptions = {
-    from: config.emailUser,
-    to: email,
+  const payload = {
+    sender: {
+      name: "Topic Trail",
+      email: process.env.SENDER_EMAIL,
+    },
+    to: [{ email: String(email).trim().toLowerCase() }],
     subject: "Email Verification OTP",
-    html: `
-            <h1>Email Verification</h1>
-            <p>Your OTP for email verification is: <strong>${otp}</strong></p>
-            <p>This OTP will expire in 10 minutes.</p>
-        `,
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 8px;">
+        <h2 style="color: #392759;">Email Verification</h2>
+        <p>Use the OTP below to verify your email address. It is valid for <strong>10 minutes</strong>.</p>
+        <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #392759; margin: 24px 0;">
+          ${otp}
+        </div>
+        <p style="color: #888; font-size: 13px;">If you did not request this, please ignore this email.</p>
+      </div>
+    `,
   };
 
   try {
-    const info = await transporter.sendMail(mailOptions);
-    const rejectedRecipients = Array.isArray(info.rejected) ? info.rejected : [];
-    const normalizedRecipient = normalizeAddress(email);
-    const rejected = rejectedRecipients.map(normalizeAddress);
-
-    if (rejected.includes(normalizedRecipient)) {
-      throw new Error("SMTP server rejected recipient address");
-    }
-
-    return info;
+    const response = await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      payload,
+      {
+        headers: {
+          "api-key": process.env.BREVO_API_KEY,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      }
+    );
+    return response.data;
   } catch (error) {
-    throw new Error(`OTP email send failed: ${error.message}`);
+    const msg =
+      error?.response?.data?.message ||
+      error?.response?.data ||
+      error?.message ||
+      "Unknown error";
+    throw new Error(`OTP email send failed: ${msg}`);
   }
 };
 

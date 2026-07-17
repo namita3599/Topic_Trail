@@ -14,8 +14,6 @@ const otpSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
-    // TTL index: MongoDB automatically deletes the document after 5 minutes (300 seconds)
-    expires: 300,
   },
 });
 

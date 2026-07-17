@@ -1,28 +1,92 @@
-const brevo = require("@getbrevo/brevo");
+const axios = require("axios");
+const nodemailer = require("nodemailer");
 const OtpModel = require("../Models/Otp");
 
 /**
- * Generates a cryptographically random 6-digit numeric OTP.
- * Uses Math.random() which is sufficient for OTP use-cases.
+ * Generates a 6-digit numeric OTP.
  */
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
 /**
- * Initializes and returns a configured Brevo TransactionalEmailsApi instance.
+ * Sends an email via Brevo REST API directly (for production).
  */
-const createBrevoApiInstance = () => {
-  const defaultClient = brevo.ApiClient.instance;
-  const apiKey = defaultClient.authentications["api-key"];
-  apiKey.apiKey = process.env.BREVO_API_KEY;
-  return new brevo.TransactionalEmailsApi();
+const sendBrevoEmail = async (toEmail, otp) => {
+  if (!process.env.BREVO_API_KEY) {
+    throw new Error("BREVO_API_KEY is not defined in environment variables");
+  }
+  if (!process.env.SENDER_EMAIL) {
+    throw new Error("SENDER_EMAIL is not defined in environment variables");
+  }
+
+  const payload = {
+    sender: { name: "Campus Core Pro", email: process.env.SENDER_EMAIL },
+    to: [{ email: toEmail }],
+    subject: "Your OTP for Email Verification",
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 8px;">
+        <h2 style="color: #392759;">Email Verification</h2>
+        <p>Use the OTP below to verify your email. It is valid for <strong>60 minutes</strong>.</p>
+        <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #392759; margin: 24px 0;">${otp}</div>
+        <p style="color: #888; font-size: 13px;">If you did not request this, please ignore this email.</p>
+      </div>
+    `,
+  };
+
+  const response = await axios.post(
+    "https://api.brevo.com/v3/smtp/email",
+    payload,
+    {
+      headers: {
+        "api-key": process.env.BREVO_API_KEY,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    }
+  );
+  return response.data;
+};
+
+/**
+ * Sends an email via Gmail SMTP using Nodemailer (for local development).
+ */
+const sendNodemailerEmail = async (toEmail, otp) => {
+  if (!process.env.EMAIL_USER) {
+    throw new Error("EMAIL_USER is not defined in environment variables");
+  }
+  if (!process.env.EMAIL_APP_PASSWORD) {
+    throw new Error("EMAIL_APP_PASSWORD is not defined in environment variables");
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_APP_PASSWORD.trim().replace(/\s+/g, ""),
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: toEmail,
+    subject: "Your OTP for Email Verification",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 8px;">
+        <h2 style="color: #392759;">Email Verification</h2>
+        <p>Use the OTP below to verify your email. It is valid for <strong>10 minutes</strong>.</p>
+        <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #392759; margin: 24px 0;">${otp}</div>
+        <p style="color: #888; font-size: 13px;">If you did not request this, please ignore this email.</p>
+      </div>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
 };
 
 /**
  * POST /api/auth/send-otp
- * Generates a 6-digit OTP, persists it to MongoDB, and sends it via Brevo HTTP API.
- * Works on Render's free tier since it uses port 443 (no SMTP port blocking).
+ * Generates a 6-digit OTP, persists it to MongoDB, and sends it via environment-aware channels.
  */
 const sendOtp = async (req, res) => {
   try {
@@ -36,42 +100,24 @@ const sendOtp = async (req, res) => {
     }
 
     const normalizedEmail = String(email).trim().toLowerCase();
-
-    // Generate OTP
     const otp = generateOTP();
 
-    // Remove any previous OTP documents for this email (clean state)
+    // Clean old OTPs
     await OtpModel.deleteMany({ email: normalizedEmail });
 
-    // Persist the new OTP to MongoDB (TTL index auto-deletes after 5 minutes)
+    // Store new OTP
     await OtpModel.create({ email: normalizedEmail, otp });
 
-    // Build the Brevo email payload
-    const sendSmtpEmail = new brevo.SendSmtpEmail();
+    const isProduction = process.env.NODE_ENV === "production";
 
-    sendSmtpEmail.sender = {
-      name: "Campus Core Pro",
-      email: process.env.SENDER_EMAIL,
-    };
-
-    sendSmtpEmail.to = [{ email: normalizedEmail }];
-
-    sendSmtpEmail.subject = "Your OTP for Email Verification";
-
-    sendSmtpEmail.htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 8px;">
-        <h2 style="color: #392759;">Email Verification</h2>
-        <p>Use the OTP below to verify your email address. It is valid for <strong>5 minutes</strong>.</p>
-        <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #392759; margin: 24px 0;">
-          ${otp}
-        </div>
-        <p style="color: #888; font-size: 13px;">If you did not request this OTP, please ignore this email.</p>
-      </div>
-    `;
-
-    // Send the email via Brevo's HTTP API (port 443 — not blocked by Render)
-    const apiInstance = createBrevoApiInstance();
-    await apiInstance.sendTransacEmail(sendSmtpEmail);
+    if (isProduction) {
+      // Production: send via Brevo REST API (port 443)
+      await sendBrevoEmail(normalizedEmail, otp);
+    } else {
+      // Local/development: Log the OTP to terminal and send via Nodemailer Gmail SMTP
+      console.log(`[DEV MODE] OTP generated for ${normalizedEmail}: ${otp}`);
+      await sendNodemailerEmail(normalizedEmail, otp);
+    }
 
     return res.status(200).json({
       success: true,
@@ -88,7 +134,7 @@ const sendOtp = async (req, res) => {
 
 /**
  * POST /api/auth/verify-otp
- * Verifies the submitted OTP against the stored value in MongoDB.
+ * Verifies the submitted OTP against the stored value in MongoDB with dynamic expiry checks.
  */
 const verifyOtp = async (req, res) => {
   try {
@@ -102,13 +148,28 @@ const verifyOtp = async (req, res) => {
     }
 
     const normalizedEmail = String(email).trim().toLowerCase();
-
     const otpRecord = await OtpModel.findOne({ email: normalizedEmail });
 
     if (!otpRecord) {
       return res.status(400).json({
         success: false,
         message: "OTP has expired or was never sent. Please request a new one.",
+      });
+    }
+
+    // Dynamic Expiry Check:
+    // Production gets 60 minutes, development gets 10 minutes.
+    const isProduction = process.env.NODE_ENV === "production";
+    const expiryMinutes = isProduction ? 60 : 10;
+    const timeElapsedMs = Date.now() - new Date(otpRecord.createdAt).getTime();
+    const timeElapsedMinutes = timeElapsedMs / (1000 * 60);
+
+    if (timeElapsedMinutes > expiryMinutes) {
+      // Expired: delete record and fail verification
+      await OtpModel.deleteMany({ email: normalizedEmail });
+      return res.status(400).json({
+        success: false,
+        message: "OTP has expired. Please request a new one.",
       });
     }
 
@@ -119,7 +180,7 @@ const verifyOtp = async (req, res) => {
       });
     }
 
-    // OTP is valid — remove it from DB so it cannot be reused
+    // Successful verification: delete OTP record so it cannot be reused
     await OtpModel.deleteMany({ email: normalizedEmail });
 
     return res.status(200).json({
