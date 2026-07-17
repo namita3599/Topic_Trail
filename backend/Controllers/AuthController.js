@@ -36,8 +36,7 @@ const signup = async (req, res) => {
     } catch (emailError) {
       console.error("OTP email send failed:", emailError.message);
       return res.status(502).json({
-        message:
-          "Signup could not be completed because OTP email delivery failed. Please try again.",
+        message: `Signup could not be completed because OTP email delivery failed: ${emailError.message}`,
         success: false,
       });
     }
