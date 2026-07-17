@@ -113,6 +113,22 @@ const VideoDetails = () => {
     fetchNotes();
   }, [videoId, location]);
 
+  useEffect(() => {
+    if (!selectedVideo) return;
+
+    const isProcessing = ["pending", "processing"].includes(
+      selectedVideo.processingStatus
+    );
+
+    if (!isProcessing) return;
+
+    const intervalId = setInterval(() => {
+      fetchVideoDetails();
+    }, 7000);
+
+    return () => clearInterval(intervalId);
+  }, [selectedVideo?.processingStatus]);
+
   const fetchVideoDetails = async () => {
     if (!token) {
       toast.error("You need to log in to view video details.");
@@ -349,12 +365,17 @@ const VideoDetails = () => {
               <div className="bg-white dark:bg-zinc-900 p-4 rounded-lg shadow-lg mb-6 h-96 overflow-y-auto">
                 {!selectedVideo.summary ||
                 selectedVideo.summary.length === 0 ? (
-                  <div className="flex items-center justify-center h-full">
+                  <div className="flex flex-col items-center justify-center h-full gap-3">
                     <img
                       src="/public/loading_gif1.gif"
                       alt="Loading..."
                       className="w-16 h-16"
                     />
+                    <p className="text-sm text-gray-600 dark:text-gray-300 text-center px-4">
+                      {selectedVideo.processingStatus === "failed"
+                        ? "Transcript or summary generation failed. Please re-upload or try again later."
+                        : "Transcript and topic summary are being generated. This section refreshes automatically."}
+                    </p>
                   </div>
                 ) : isCreator ? (
                   <EditableSummary

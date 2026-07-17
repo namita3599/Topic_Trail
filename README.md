@@ -123,7 +123,7 @@ TopicTrail is a smart lecture management platform powered by AI. It simplifies c
    HUGGINGFACE_QWEN_URL="https://api-inference.huggingface.co/models/Qwen/QwQ-32B-Preview"
    GROQ_API_KEY="your-groq-api-key"
    EMAIL_USER="your-email@gmail.com"
-   EMAIL_PASSWORD="your-email-password"
+   EMAIL_PASS="your-email-password"
    # NODE_EXTRA_CA_CERTS=cloudinary.crt
    ```
 

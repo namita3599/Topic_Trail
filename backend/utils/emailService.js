@@ -11,7 +11,7 @@ const normalizeAddress = (address) => {
 const getSanitizedEmailConfig = () => {
   const emailUser = (process.env.EMAIL_USER || process.env.SMTP_USER || "")
     .trim();
-  const emailPass = (process.env.EMAIL_PASS || process.env.SMTP_PASS || "")
+  const emailPass = (process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || "")
     .trim()
     .replace(/\s+/g, "");
   const emailHost = (process.env.EMAIL_HOST || "smtp.gmail.com").trim();
@@ -20,7 +20,7 @@ const getSanitizedEmailConfig = () => {
     String(process.env.EMAIL_SECURE || "false").toLowerCase() === "true";
 
   if (!emailUser || !emailPass) {
-    throw new Error("EMAIL_USER and EMAIL_PASS must be set for OTP emails");
+    throw new Error("EMAIL_USER and EMAIL_PASS (or EMAIL_PASSWORD) must be set for OTP emails");
   }
 
   if (Number.isNaN(emailPort)) {
@@ -37,15 +37,22 @@ const getSanitizedEmailConfig = () => {
 };
 
 const createTransporter = (config) => {
-  return nodemailer.createTransport({
-    host: config.emailHost,
-    port: config.emailPort,
-    secure: config.emailSecure,
+  const options = {
     auth: {
       user: config.emailUser,
       pass: config.emailPass,
     },
-  });
+  };
+
+  if (config.emailHost === "smtp.gmail.com") {
+    options.service = "gmail";
+  } else {
+    options.host = config.emailHost;
+    options.port = config.emailPort;
+    options.secure = config.emailSecure;
+  }
+
+  return nodemailer.createTransport(options);
 };
 
 const sendOTPEmail = async (email, otp) => {

@@ -10,6 +10,10 @@ const { promisify } = require("util");
 const path = require("path");
 
 class WhisperService {
+  static sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
   static async transcribe(audioBuffer) {
     let tempFiles = [];
     try {
@@ -208,25 +212,93 @@ class WhisperService {
       ).toFixed(2)} MB...`
     );
 
-    const startTime = Date.now();
+    const maxAttempts = 3;
+    let lastError;
 
-    const response = await axios.post(
-      process.env.HUGGINGFACE_WHISPER_URL,
-      audioBuffer, // send raw buffer
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
-          "Content-Type": "audio/mpeg", // or "audio/wav" if you send wav files
-          Accept: "application/json",
-        },
-        maxBodyLength: Infinity,
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const startTime = Date.now();
+      try {
+        const response = await axios.post(
+          process.env.HUGGINGFACE_WHISPER_URL,
+          audioBuffer,
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+              "Content-Type": "audio/mpeg",
+              Accept: "application/json",
+            },
+            timeout: 180000,
+            maxBodyLength: Infinity,
+          }
+        );
+
+        const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+        console.log(`✅ API request completed in ${duration} seconds`);
+
+        const transcription = this.extractTranscriptionText(response.data);
+        if (!transcription) {
+          throw new Error("Transcription response did not contain text");
+        }
+
+        return transcription;
+      } catch (error) {
+        lastError = error;
+        const hfError = error?.response?.data?.error || "";
+        const estimatedTime = Number(error?.response?.data?.estimated_time || 0);
+        const isLoadingError =
+          String(hfError).toLowerCase().includes("loading") ||
+          String(hfError).toLowerCase().includes("currently loading");
+
+        if (attempt < maxAttempts && isLoadingError) {
+          const waitMs = estimatedTime > 0 ? estimatedTime * 1000 : 5000;
+          console.warn(
+            `⏳ Whisper model loading. Retry ${attempt + 1}/${maxAttempts} in ${Math.ceil(
+              waitMs / 1000
+            )}s...`
+          );
+          await this.sleep(waitMs);
+          continue;
+        }
+
+        if (attempt < maxAttempts) {
+          console.warn(
+            `⚠️ Transcription request failed (attempt ${attempt}/${maxAttempts}): ${
+              error.message
+            }`
+          );
+          await this.sleep(1500);
+          continue;
+        }
       }
-    );
+    }
 
-    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-    console.log(`✅ API request completed in ${duration} seconds`);
+    throw lastError || new Error("Transcription request failed");
+  }
 
-    return response.data.text;
+  static extractTranscriptionText(payload) {
+    if (!payload) return "";
+
+    if (typeof payload === "string") {
+      return payload.trim();
+    }
+
+    if (typeof payload.text === "string") {
+      return payload.text.trim();
+    }
+
+    if (Array.isArray(payload) && payload.length > 0) {
+      const first = payload[0] || {};
+      if (typeof first.text === "string") return first.text.trim();
+      if (typeof first.generated_text === "string") {
+        return first.generated_text.trim();
+      }
+    }
+
+    if (typeof payload.generated_text === "string") {
+      return payload.generated_text.trim();
+    }
+
+    return "";
   }
 
   static async processChunks(chunks) {
