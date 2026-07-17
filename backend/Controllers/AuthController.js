@@ -20,9 +20,13 @@ const signup = async (req, res) => {
     const user = await UserModel.findOne({ email: normalizedEmail });
 
     if (user) {
-      return res
-        .status(409)
-        .json({ message: "User already exists", success: false });
+      if (user.isVerified) {
+        return res
+          .status(409)
+          .json({ message: "User already exists", success: false });
+      }
+      // If user exists but is not verified, delete the old record so they can register fresh
+      await UserModel.deleteOne({ email: normalizedEmail });
     }
 
     // Generate OTP and set expiry
